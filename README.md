@@ -1,10 +1,14 @@
 # Martinet
 
-Distributed task management.
+Task management loosely based on [martinet](github.com/mathisonian/martinet)
 
 Martinet is a database-backed, zeroMQ-based distributed task management system. It is persistent with respect to future and recurring tasks, so if your system goes down, those tasks will be unaffected. Martinet can use any [sequelize.js](github.com/sequelize/sequelize) compatible database as its backing database (SQLite is used by default).
 
-Martinet uses a push-pull messaging pattern to ensure efficiency when used in a distributed environment.
+Key differences between the original Martinet and this one is the following:
+
+- Uses broker-dealer/response sockets to handle job distribution
+- All workers must implement the same set of jobs, otherwise an error will be thrown that the
+  handler was unable to handle the required task
 
 ## Installation
 
@@ -28,12 +32,9 @@ var Martinet = require('martinet');
 
 var martinet = new Martinet();
 
-// Martinet allows you to create multiple workers
-// so that you can keep worker code in separate 
-// logical modules.
-
-martinet.addWorker('WORKER_NAME_1', 'WORKER_PORT_1');
-martinet.addWorker('WORKER_NAME_2', 'WORKER_PORT_2');
+// The worker will register itself with the server letting the
+// server know when it is ready for work
+var worker = new Martinet.Worker();
 
 ```
 
@@ -44,18 +45,17 @@ martinet.addWorker('WORKER_NAME_2', 'WORKER_PORT_2');
 ```javascript
 
 martinet.execute({
-    worker: 'WORKER_NAME',
+    username: 'user', // Useful for tracking who ran what tasks
     name: 'task_name',
     description: 'Do a thing' // Used in the backend so it's easier to lookup tasks later
 }, args);
 
 // args JSON object of named arguments, so like
 // {
-//    thing_id: 1   
+//    thing_id: 1
 // }
 //
 // this object gets serialized and passed to the Worker
-//
 
 ```
 
@@ -64,7 +64,7 @@ martinet.execute({
 ```javascript
 
 martinet.schedule('in 20 minutes', {
-    worker: 'WORKER_NAME',
+    username: 'user',
     name: 'task_name',
     description: 'Do a thing in 20 minutes'
 }, args);
@@ -76,7 +76,7 @@ martinet.schedule('in 20 minutes', {
 ```javascript
 
 martinet.every('30 minutes', {
-    worker: 'WORKER_NAME',
+    username: 'user',
     name: 'task_name',
     description: 'Do a thing every half hour',
     run_at: 'midnight' // optional time to start the recurring task
@@ -93,10 +93,10 @@ martinet.every('30 minutes', {
 
 var MartinetWorker = require('martinet').Worker;
 
-var WORKER_PORT = 3000;
-var worker = new MartinetWorker(WORKER_PORT, {
-    martinet_url: '127.0.0.1',
-    martinet_port: '8089'
+var worker = new MartinetWorker({
+    martinet_url: '127.0.0.1', // URL for dealer socket
+    worker_port: '8089', // Port for dealer socket
+    status_port: '18089' // Port for worker status updates
 });
 ```
 
@@ -107,10 +107,8 @@ var worker = new MartinetWorker(WORKER_PORT, {
 
 worker.on('task_name', function(taskId, data, callback) {
     // do a thing.
-    
     // if it's successful, callback(),
     // if there's an error, callback(err)
-
 });
 
 ```
@@ -127,7 +125,22 @@ Custom port for martinet's pull socket to listen on.
 var Martinet = require('martinet');
 
 var options = {
-    port: 8009
+  martinet_url: '127.0.0.1', // URL for dealer socket, must match worker URL
+  client_port: '8008', // Router port used for processing incoming requests
+  worker_port: '8009', // Port used for the dealer socket, must match worker PORT
+  status_port: '18009', // Port used to receive status from workers, must match worker PORT
+  db: {
+    database: 'martinet-db',
+    username: process.env.USER,
+    password: null,
+    options: {
+      dialect: 'sqlite',
+      storage: 'martinet.db',
+      logging: false,
+      omitNull: true
+    },
+    sync: true
+  }
 };
 
 var martinet = new Martinet(options);
@@ -139,23 +152,22 @@ Connection information to the backing database. Uses [sequelize.js options](http
 
 default is 
 
-
 ```javascript
 var Martinet = require('martinet');
 
 var options = {
-    db: {
-      database: 'martinet-db',
-      username: process.env.USER,
-      password: null,
-      options: {
-        dialect: 'sqlite',
-        storage: 'martinet.db',
-        logging: false,
-        omitNull: true
-      },
-      sync: true
-    }
+  db: {
+    database: 'martinet-db',
+    username: process.env.USER,
+    password: null,
+    options: {
+      dialect: 'sqlite',
+      storage: 'martinet.db',
+      logging: false,
+      omitNull: true
+    },
+    sync: true
+  }
 };
 
 var martinet = new Martinet(options);
@@ -167,19 +179,19 @@ but for example to use postgres:
 var Martinet = require('martinet');
 
 var options = {
-    db: {
-      database: 'martinet-db',
-      username: process.env.USER,
-      password: null,
-      options: {
-        dialect: 'postgres',
-        port: 5432,
-        host: 'database.host'
-        logging: false,
-        omitNull: true
-      },
-      sync: true
-    }
+  db: {
+    database: 'martinet-db',
+    username: process.env.USER,
+    password: null,
+    options: {
+      dialect: 'postgres',
+      port: 5432,
+      host: 'database.host'
+      logging: false,
+      omitNull: true
+    },
+    sync: true
+  }
 };
 
 var martinet = new Martinet(options);
@@ -194,3 +206,7 @@ Connection string to connect to martinet. If worker is on the same machine as ma
 #### Martinet PORT
 
 The port to connect to martinet on. This should be the same port defined by the martinet object's port option.
+
+### Status PORT
+
+The port used to send status notifications back to the martinet server. This would include progress and error notificaitons.
