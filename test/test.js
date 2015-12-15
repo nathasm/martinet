@@ -16,13 +16,15 @@ describe('martinet tests', function() {
     done();
   });
 
-  it('should be able to create server/worker objects', function() {
+  beforeEach(function() {
     martinet = new Martinet();
     worker = new Martinet.Worker();
-    expect(martinet).to.be.a(Martinet);
-    expect(worker).to.be.a(Martinet.Worker);
   });
 
+  afterEach(function() {
+    martinet.close();
+    worker.close();
+  });
 
   it('should execute a simple task', function(done) {
     worker.on('add', function(taskId, data, cb) {
@@ -93,7 +95,7 @@ describe('martinet tests', function() {
   });
 
   it('should be able to handle an error', function(done) {
-    martinet.onComplete(function(taskId) {
+    martinet.onError(function(taskId) {
       martinet.taskStatus({ username: 'error_user' }).then(function(data) {
         expect(data[0].error).to.equal(true);
         done();
@@ -107,10 +109,50 @@ describe('martinet tests', function() {
     }, {});
   });
 
+  it('should handle multiple workers', function(done) {
+    var responses = {
+      count: 0,
+      sleep_user: false,
+      new_sleep_user: false
+    };
+    var newWorker = new Martinet.Worker();
+    var sleep = function(taskId, data, cb) {
+      setTimeout(cb, data.timeout);
+    };
+
+    worker.on('sleep', sleep);
+    newWorker.on('sleep', sleep);
+
+    martinet.onComplete(function(task) {
+      responses.count += 1;
+      responses[task.username] = true;
+      if(responses.count === 2 && responses.sleep_user && responses.new_sleep_user) {
+        done();
+      }
+    });
+
+    setTimeout(function() {
+      martinet.execute({
+        username: 'sleep_user',
+        name: 'sleep',
+        descriptions: 'add some numbers'
+      }, {
+        timeout: 500
+      });
+      martinet.execute({
+        username: 'new_sleep_user',
+        name: 'sleep',
+        descriptions: 'add some numbers'
+      }, {
+        timeout: 100
+      });
+    }, 500);
+  });
+
   describe('taskStatus', function() {
     it('should return status for all tasks in the database', function() {
       return martinet.taskStatus().then(function(data) {
-        expect(data.length).to.be(4);
+        expect(data.length).to.be(6);
         expect(data[0].id).to.equal(1);
         expect(data[0].username).to.equal('username');
         expect(data[0].name).to.equal('add');
