@@ -156,6 +156,7 @@ describe('martinet tests', function() {
         expect(data[0].id).to.equal(1);
         expect(data[0].worker).to.equal('username');
         expect(data[0].name).to.equal('add');
+        expect(data[0].result).to.equal('21');
         expect(data[0].complete).to.equal(true);
         expect(data[0].error).to.equal(false);
         expect(data[0].progress).to.equal(1);
