@@ -40,7 +40,7 @@ describe('martinet tests', function() {
     // We add the timeout for martinet to finish creating the sql database
     setTimeout(function() {
       martinet.execute({
-        username: 'username',
+        worker: 'username',
         name: 'add',
         descriptions: 'add some numbers'
       }, {
@@ -61,7 +61,7 @@ describe('martinet tests', function() {
     });
 
     martinet.execute({
-      username: 'subtract_user',
+      worker: 'subtract_user',
       name: 'subtract',
       descriptions: 'add some numbers'
     }, {
@@ -78,7 +78,7 @@ describe('martinet tests', function() {
 
     martinet.onComplete(function(task) {
       martinet.setProgress(task.id, 0.5).then(function() {
-        martinet.taskStatus({ username: 'progress_user' }).then(function(data) {
+        martinet.taskStatus({ worker: 'progress_user' }).then(function(data) {
           expect(data[0].progress).to.equal(0.5);
           done();
         });
@@ -86,7 +86,7 @@ describe('martinet tests', function() {
     });
 
     martinet.execute({
-      username: 'progress_user',
+      worker: 'progress_user',
       name: 'progress',
       descriptions: 'set progress'
     }, {
@@ -96,14 +96,14 @@ describe('martinet tests', function() {
 
   it('should be able to handle an error', function(done) {
     martinet.onError(function(taskId) {
-      martinet.taskStatus({ username: 'error_user' }).then(function(data) {
+      martinet.taskStatus({ worker: 'error_user' }).then(function(data) {
         expect(data[0].error).to.equal(true);
         done();
       });
     });
 
     martinet.execute({
-      username: 'error_user',
+      worker: 'error_user',
       name: 'undefined_handler',
       descriptions: 'No handler is defined for undefined_handler'
     }, {});
@@ -125,7 +125,7 @@ describe('martinet tests', function() {
 
     martinet.onComplete(function(task) {
       responses.count += 1;
-      responses[task.username] = true;
+      responses[task.worker] = true;
       if(responses.count === 2 && responses.sleep_user && responses.new_sleep_user) {
         done();
       }
@@ -133,14 +133,14 @@ describe('martinet tests', function() {
 
     setTimeout(function() {
       martinet.execute({
-        username: 'sleep_user',
+        worker: 'sleep_user',
         name: 'sleep',
         descriptions: 'add some numbers'
       }, {
         timeout: 500
       });
       martinet.execute({
-        username: 'new_sleep_user',
+        worker: 'new_sleep_user',
         name: 'sleep',
         descriptions: 'add some numbers'
       }, {
@@ -154,7 +154,7 @@ describe('martinet tests', function() {
       return martinet.taskStatus().then(function(data) {
         expect(data.length).to.be(6);
         expect(data[0].id).to.equal(1);
-        expect(data[0].username).to.equal('username');
+        expect(data[0].worker).to.equal('username');
         expect(data[0].name).to.equal('add');
         expect(data[0].complete).to.equal(true);
         expect(data[0].error).to.equal(false);
@@ -163,10 +163,10 @@ describe('martinet tests', function() {
     });
 
     it('should return status for a known user', function() {
-      return martinet.taskStatus({ username: 'username' }).then(function(data) {
+      return martinet.taskStatus({ worker: 'username' }).then(function(data) {
         expect(data.length).to.be(1);
         expect(data[0].id).to.equal(1);
-        expect(data[0].username).to.equal('username');
+        expect(data[0].worker).to.equal('username');
         expect(data[0].name).to.equal('add');
         expect(data[0].complete).to.equal(true);
         expect(data[0].error).to.equal(false);
@@ -175,7 +175,7 @@ describe('martinet tests', function() {
     });
 
     it('should return no status for an unknown user', function() {
-      return martinet.taskStatus({ username: 'foo' }).then(function(data) {
+      return martinet.taskStatus({ worker: 'foo' }).then(function(data) {
         expect(data.length).to.be(0);
       });
     });
