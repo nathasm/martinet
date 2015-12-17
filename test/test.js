@@ -10,6 +10,11 @@ describe('martinet tests', function() {
 
   var martinet;
   var worker;
+  var default_opts = {
+    client_port: '28008',
+    worker_port: '28009',
+    status_port: '38009'
+  };
 
   after(function(done) {
     fs.unlinkSync(process.cwd() + '/' + martinet.options.db.options.storage);
@@ -17,8 +22,8 @@ describe('martinet tests', function() {
   });
 
   beforeEach(function() {
-    martinet = new Martinet();
-    worker = new Martinet.Worker();
+    martinet = new Martinet(default_opts);
+    worker = new Martinet.Worker(default_opts);
   });
 
   afterEach(function() {
@@ -95,7 +100,7 @@ describe('martinet tests', function() {
   });
 
   it('should be able to handle an error', function(done) {
-    martinet.onError(function(taskId) {
+    martinet.onError(function(task) {
       martinet.taskStatus({ worker: 'error_user' }).then(function(data) {
         expect(data[0].error).to.equal(true);
         done();
@@ -156,7 +161,7 @@ describe('martinet tests', function() {
         expect(data[0].id).to.equal(1);
         expect(data[0].worker).to.equal('username');
         expect(data[0].name).to.equal('add');
-        expect(data[0].result).to.equal('21');
+        expect(data[0].result).to.equal(21);
         expect(data[0].complete).to.equal(true);
         expect(data[0].error).to.equal(false);
         expect(data[0].progress).to.equal(1);
