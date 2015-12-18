@@ -114,6 +114,25 @@ describe('martinet tests', function() {
     }, {});
   });
 
+  it('should be able to handle an error inside the handler', function(done) {
+    worker.on('error_handler', function(taskId, data, cb) {
+      cb({ message: 'message', error: 'error' });
+    });
+
+    martinet.onError(function(task) {
+      martinet.taskStatus({ worker: 'error_handler_user' }).then(function(data) {
+        expect(data[0].error).to.equal(true);
+        done();
+      });
+    });
+
+    martinet.execute({
+      worker: 'error_handler_user',
+      name: 'error_handler',
+      descriptions: 'No handler is defined for undefined_handler'
+    }, {});
+  });
+
   it('should handle multiple workers', function(done) {
     var responses = {
       count: 0,
@@ -157,7 +176,7 @@ describe('martinet tests', function() {
   describe('taskStatus', function() {
     it('should return status for all tasks in the database', function() {
       return martinet.taskStatus().then(function(data) {
-        expect(data.length).to.be(6);
+        expect(data.length).to.be(7);
         expect(data[0].id).to.equal(1);
         expect(data[0].worker).to.equal('username');
         expect(data[0].name).to.equal('add');
@@ -190,7 +209,7 @@ describe('martinet tests', function() {
   describe('taskLog', function() {
     it('should get the task log', function() {
       return martinet.taskLog().then(function(data) {
-        expect(data.length).to.be(1);
+        expect(data.length).to.be(2);
         expect(data[0].TaskId).to.be(4);
         expect(/.*undefined_handler.*/.test(data[0].content)).to.be(true);
       });
