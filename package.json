@@ -1,7 +1,7 @@
 {
-  "name": "martinet",
+  "name": "local-martinet",
   "description": "Distributed job queue",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "author": {
     "name": "Matthew Conlen",
     "email": "mc@mathisonian.com"
