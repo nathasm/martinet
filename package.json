@@ -1,7 +1,7 @@
 {
   "name": "martinet",
   "description": "Distributed job queue",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "author": {
     "name": "Matthew Conlen",
     "email": "mc@mathisonian.com"
@@ -26,7 +26,7 @@
     "node-schedule": "~0.1.13",
     "q": "~1.4.1",
     "sequelize": "^1.7.10",
-    "zmq": "~2.13.0"
+    "zmq": "~2.15.3"
   },
   "devDependencies": {
     "expect.js": "^0.3.1",
